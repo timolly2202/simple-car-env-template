@@ -6,6 +6,7 @@ from pybullet_utils import bullet_client as bc
 from simple_driving.resources.car import Car
 from simple_driving.resources.plane import Plane
 from simple_driving.resources.goal import Goal
+from simple_driving.resources.obstacle import Obstacle
 import matplotlib.pyplot as plt
 import time
 
@@ -15,7 +16,7 @@ RENDER_WIDTH = 960
 class SimpleDrivingEnv(gym.Env):
     metadata = {'render.modes': ['human', 'fp_camera', 'tp_camera']}
 
-    def __init__(self, isDiscrete=True, renders=False):
+    def __init__(self, isDiscrete=True, renders=False, obstacle=False):
         if (isDiscrete):
             self.action_space = gym.spaces.Discrete(9)
         else:
@@ -31,6 +32,10 @@ class SimpleDrivingEnv(gym.Env):
           self._p = bc.BulletClient(connection_mode=p.GUI)
         else:
           self._p = bc.BulletClient()
+
+        self.obstacle_bool = obstacle
+        self.obstacle_object = None
+        self.obstacle = None
 
         self.reached_goal = False
         self._timeStep = 0.01
@@ -79,14 +84,17 @@ class SimpleDrivingEnv(gym.Env):
         reward = -dist_to_goal
         self.prev_dist_to_goal = dist_to_goal
 
+        if self.obstacle_bool:
+            ...
+
         # Done by reaching goal
         if dist_to_goal < 1.5 and not self.reached_goal:
             #print("reached goal")
             self.done = True
             self.reached_goal = True
 
-        ob = car_ob
-        return ob, reward, self.done, dict()
+        state = car_ob
+        return state, reward, self.done, dict()
 
     def seed(self, seed=None):
         self.np_random, seed = gym.utils.seeding.np_random(seed)
@@ -112,6 +120,20 @@ class SimpleDrivingEnv(gym.Env):
 
         # Visual element of the goal
         self.goal_object = Goal(self._p, self.goal)
+
+        
+        if self.obstacle_bool:
+            # Set the obstacle to a random target
+            # x_obs = (self.np_random.uniform(5, 9) if self.np_random.integers(2) else
+            #     self.np_random.uniform(-9, -5))
+            # y_obs = (self.np_random.uniform(5, 9) if self.np_random.integers(2) else
+            #     self.np_random.uniform(-9, -5))
+            # self.obstacle = (x_obs, y_obs)
+
+            self.obstacle = (x/2, y/2) # halfway between obs and goal
+
+            # Visual element of the obstacle
+            self.obstacle_object = Obstacle(self._p, self.obstacle)
 
         # Get observation to return
         carpos = self.car.get_observation()
@@ -183,7 +205,12 @@ class SimpleDrivingEnv(gym.Env):
         invCarPos, invCarOrn = self._p.invertTransform(carpos, carorn)
         goalPosInCar, goalOrnInCar = self._p.multiplyTransforms(invCarPos, invCarOrn, goalpos, goalorn)
 
-        observation = [goalPosInCar[0], goalPosInCar[1]]
+        if self.obstacle_bool:
+            obspos, obsorn = self._p.getBasePositionAndOrientation(self.obstacle_object.obstacle)
+            obsPosInCar, obsOrnInCar = self._p.multiplyTransforms(invCarPos, invCarOrn, obspos, obsorn)
+            observation = [goalPosInCar[0], goalPosInCar[1], obsPosInCar[0], obsPosInCar[1]]
+        else:
+            observation = [goalPosInCar[0], goalPosInCar[1]]
         return observation
 
     def _termination(self):
