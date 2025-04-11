@@ -77,7 +77,7 @@ class SimpleDrivingEnv(gym.Env):
 
         # Compute reward as L2 change in distance to goal
         # dist_to_goal = math.sqrt(((car_ob[0] - self.goal[0]) ** 2 +
-                                  # (car_ob[1] - self.goal[1]) ** 2))
+        #                           (car_ob[1] - self.goal[1]) ** 2))
         dist_to_goal = math.sqrt(((carpos[0] - goalpos[0]) ** 2 +
                                   (carpos[1] - goalpos[1]) ** 2))
         # reward = max(self.prev_dist_to_goal - dist_to_goal, 0)
@@ -85,11 +85,25 @@ class SimpleDrivingEnv(gym.Env):
         self.prev_dist_to_goal = dist_to_goal
 
         if self.obstacle_bool:
-            ...
+            obspos, obsorn = self._p.getBasePositionAndOrientation(self.obstacle_object.obstacle)
+            dist_to_obs = math.sqrt(((carpos[0] - obspos[0]) ** 2 +
+                                  (carpos[1] - obspos[1]) ** 2))
+            
+            # check if car hits the obstacle, and ends the simulation with a large penalty
+            contacts = self._p.getContactPoints(bodyA=self.car.car, bodyB=self.obstacle_object.obstacle)
+            if contacts:
+                reward -= 10.0
+                self.done = True
+            
+            if dist_to_obs<1.0:
+                reward -= 5
+            elif dist_to_obs <2.0:
+                reward -= 2
+            
 
         # Done by reaching goal
         if dist_to_goal < 1.5 and not self.reached_goal:
-            #print("reached goal")
+            # print("reached goal")
             self.done = True
             self.reached_goal = True
 
