@@ -99,13 +99,13 @@ class SimpleDrivingEnv(gym.Env):
             # check if car hits the obstacle, and ends the simulation with a large penalty
             contacts = self._p.getContactPoints(bodyA=self.car.car, bodyB=self.obstacle_object.obstacle)
             if contacts:
-                reward -= 50.0
+                reward -= 30.0
                 self.done = True
             
             if dist_to_obs<1.0:
-                reward -= 20
+                reward -= 3
             elif dist_to_obs <2.0:
-                reward -= 5
+                reward -= 1
             
 
         # Done by reaching goal
