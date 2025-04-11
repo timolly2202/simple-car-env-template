@@ -23,9 +23,16 @@ class SimpleDrivingEnv(gym.Env):
             self.action_space = gym.spaces.box.Box(
                 low=np.array([-1, -.6], dtype=np.float32),
                 high=np.array([1, .6], dtype=np.float32))
-        self.observation_space = gym.spaces.box.Box(
-            low=np.array([-40, -40], dtype=np.float32),
-            high=np.array([40, 40], dtype=np.float32))
+            
+        if obstacle:
+            self.observation_space = gym.spaces.Box(
+                low=np.array([-40, -40, -40, -40], dtype=np.float32),
+                high=np.array([40, 40, 40, 40], dtype=np.float32))
+        else:
+            self.observation_space = gym.spaces.Box(
+                low=np.array([-40, -40], dtype=np.float32),
+                high=np.array([40, 40], dtype=np.float32))
+            
         self.np_random, _ = gym.utils.seeding.np_random()
 
         if renders:
@@ -92,18 +99,19 @@ class SimpleDrivingEnv(gym.Env):
             # check if car hits the obstacle, and ends the simulation with a large penalty
             contacts = self._p.getContactPoints(bodyA=self.car.car, bodyB=self.obstacle_object.obstacle)
             if contacts:
-                reward -= 10.0
+                reward -= 50.0
                 self.done = True
             
             if dist_to_obs<1.0:
-                reward -= 5
+                reward -= 20
             elif dist_to_obs <2.0:
-                reward -= 2
+                reward -= 5
             
 
         # Done by reaching goal
         if dist_to_goal < 1.5 and not self.reached_goal:
             # print("reached goal")
+            reward = 50
             self.done = True
             self.reached_goal = True
 
